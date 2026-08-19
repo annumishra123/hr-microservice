@@ -1,0 +1,26 @@
+# NGINX Ingress Controller ke through gateway ko internet-facing banate hain.
+# TLS termination yahan hoti hai (cert-manager se free Let's Encrypt cert
+# generate kar sakte ho annotation add karke).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hrms-ingress
+  namespace: hrms
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+    # WebSocket support zaroori hai Socket.IO ke liye:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.yourhrms.com   # apna domain daalo
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port: { number: 80 }

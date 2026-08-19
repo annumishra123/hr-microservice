@@ -1,0 +1,46 @@
+# StatefulSet kyun (Deployment nahi)? MongoDB ko STABLE network identity
+# aur STABLE storage chahiye — pod restart hone pe wahi disk wapas milna
+# chahiye. StatefulSet ye guarantee deta hai (Deployment nahi deta).
+#
+# NOTE: 3 lakh users ke real production load ke liye single-pod Mongo kaafi
+# nahi hoga — MongoDB Replica Set (3 nodes) ya managed service (MongoDB
+# Atlas) use karo. Ye manifest sirf structural reference hai.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: hrms
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector:
+    matchLabels: { app: mongo }
+  template:
+    metadata:
+      labels: { app: mongo }
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports: [{ containerPort: 27017 }]
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+  volumeClaimTemplates:
+    - metadata: { name: mongo-data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 10Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: hrms
+spec:
+  clusterIP: None   # headless service — StatefulSet ke stable DNS ke liye
+  selector: { app: mongo }
+  ports: [{ port: 27017, targetPort: 27017 }]

@@ -1,0 +1,131 @@
+# ==============================================================================
+# LOCAL DEV / SINGLE-MACHINE ORCHESTRATION
+# `docker compose up --build` se poora system ek command me khada ho jaata hai:
+#   Infra:    mongo, redis, rabbitmq (+ management UI)
+#   Services: auth, employee, attendance, notification
+#   Gateway:  api-gateway (yehi ek public port expose karta hai: 4000)
+#
+# Production me ye hi services K8s Deployments ban jaate hain (dekho k8s/).
+# ==============================================================================
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: hrms-mongo
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    volumes: ["mongo_data:/data/db"]
+    networks: [hrms-net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: hrms-redis
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    volumes: ["redis_data:/data"]
+    networks: [hrms-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: hrms-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # AMQP protocol port (services isse connect karte hain)
+      - "15672:15672" # Management UI -> http://localhost:15672 (guest/guest)
+    networks: [hrms-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: hrms-auth-service
+    restart: unless-stopped
+    env_file: ./services/auth-service/.env.example
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hrms_auth
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongo: { condition: service_started }
+      rabbitmq: { condition: service_healthy }
+    networks: [hrms-net]
+
+  employee-service:
+    build: ./services/employee-service
+    container_name: hrms-employee-service
+    restart: unless-stopped
+    env_file: ./services/employee-service/.env.example
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hrms_employee
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      mongo: { condition: service_started }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    networks: [hrms-net]
+
+  attendance-service:
+    build: ./services/attendance-service
+    container_name: hrms-attendance-service
+    restart: unless-stopped
+    env_file: ./services/attendance-service/.env.example
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hrms_attendance
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongo: { condition: service_started }
+      rabbitmq: { condition: service_healthy }
+    networks: [hrms-net]
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: hrms-notification-service
+    restart: unless-stopped
+    env_file: ./services/notification-service/.env.example
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hrms_notification
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      mongo: { condition: service_started }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    networks: [hrms-net]
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: hrms-api-gateway
+    restart: unless-stopped
+    env_file: ./api-gateway/.env.example
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - EMPLOYEE_SERVICE_URL=http://employee-service:5002
+      - ATTENDANCE_SERVICE_URL=http://attendance-service:5003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5004
+    ports:
+      - "4000:4000"
+    depends_on:
+      - redis
+      - auth-service
+      - employee-service
+      - attendance-service
+      - notification-service
+    networks: [hrms-net]
+
+networks:
+  hrms-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  redis_data:
