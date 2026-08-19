@@ -1,0 +1,100 @@
+services:
+  - type: web
+    name: api-gateway
+    runtime: docker
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: ./api-gateway
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: REDIS_URL
+        fromService:
+          name: hrms-redis
+          type: keyvalue
+          property: connectionString
+      - key: AUTH_SERVICE_URL
+        fromService: { name: auth-service, type: web, property: hostport }
+      - key: EMPLOYEE_SERVICE_URL
+        fromService: { name: employee-service, type: web, property: hostport }
+      - key: ATTENDANCE_SERVICE_URL
+        fromService: { name: attendance-service, type: web, property: hostport }
+      - key: NOTIFICATION_SERVICE_URL
+        fromService: { name: notification-service, type: web, property: hostport }
+      - key: JWT_SECRET
+        sync: false
+
+  - type: web
+    name: auth-service
+    runtime: docker
+    dockerfilePath: ./services/auth-service/Dockerfile
+    dockerContext: ./services/auth-service
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 5001
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  - type: web
+    name: employee-service
+    runtime: docker
+    dockerfilePath: ./services/employee-service/Dockerfile
+    dockerContext: ./services/employee-service
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 5002
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: hrms-redis
+          type: keyvalue
+          property: connectionString
+
+  - type: web
+    name: attendance-service
+    runtime: docker
+    dockerfilePath: ./services/attendance-service/Dockerfile
+    dockerContext: ./services/attendance-service
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 5003
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+
+  - type: web
+    name: notification-service
+    runtime: docker
+    dockerfilePath: ./services/notification-service/Dockerfile
+    dockerContext: ./services/notification-service
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 5004
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: hrms-redis
+          type: keyvalue
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+
+keyvalue:
+  - name: hrms-redis
+    plan: free
+    ipAllowList: []
