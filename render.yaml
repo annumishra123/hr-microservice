@@ -4,15 +4,12 @@ services:
     runtime: docker
     dockerfilePath: ./api-gateway/Dockerfile
     dockerContext: ./api-gateway
-    plan: starter
+    plan: free
     envVars:
       - key: PORT
         value: 4000
       - key: REDIS_URL
-        fromService:
-          name: hrms-redis
-          type: keyvalue
-          property: connectionString
+        sync: false
       - key: AUTH_SERVICE_URL
         fromService: { name: auth-service, type: web, property: hostport }
       - key: EMPLOYEE_SERVICE_URL
@@ -29,7 +26,7 @@ services:
     runtime: docker
     dockerfilePath: ./services/auth-service/Dockerfile
     dockerContext: ./services/auth-service
-    plan: starter
+    plan: free
     envVars:
       - key: PORT
         value: 5001
@@ -45,7 +42,7 @@ services:
     runtime: docker
     dockerfilePath: ./services/employee-service/Dockerfile
     dockerContext: ./services/employee-service
-    plan: starter
+    plan: free
     envVars:
       - key: PORT
         value: 5002
@@ -54,17 +51,14 @@ services:
       - key: RABBITMQ_URL
         sync: false
       - key: REDIS_URL
-        fromService:
-          name: hrms-redis
-          type: keyvalue
-          property: connectionString
+        sync: false
 
   - type: web
     name: attendance-service
     runtime: docker
     dockerfilePath: ./services/attendance-service/Dockerfile
     dockerContext: ./services/attendance-service
-    plan: starter
+    plan: free
     envVars:
       - key: PORT
         value: 5003
@@ -78,7 +72,7 @@ services:
     runtime: docker
     dockerfilePath: ./services/notification-service/Dockerfile
     dockerContext: ./services/notification-service
-    plan: starter
+    plan: free
     envVars:
       - key: PORT
         value: 5004
@@ -87,14 +81,6 @@ services:
       - key: RABBITMQ_URL
         sync: false
       - key: REDIS_URL
-        fromService:
-          name: hrms-redis
-          type: keyvalue
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         sync: false
-
-keyvalue:
-  - name: hrms-redis
-    plan: free
-    ipAllowList: []
