@@ -30,8 +30,10 @@ exports.updateMe = async (req, res) => {
 
 // @desc Update salary structure (HR/Admin)
 exports.updateSalaryStructure =  async (req, res) => {
-  const employee = await Employee.findOneAndUpdate(req.params.id, {salary: req.body},{new: true, runValidators: true}).select('-password -refreshToken')
-  console.log(employee,"kakakakakakakakakaka");
+  const employee = await Employee.findOneAndUpdate(
+    {_id: req.params.id}, 
+    {salary: req.body},
+    {new: true, runValidators: true})
   
   if (!employee) return res.status(404).json({ success: false, message: 'Employee profile not found' });
   res.json({ success: true, data: employee });
