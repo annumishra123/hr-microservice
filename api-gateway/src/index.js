@@ -59,7 +59,7 @@ async function start() {
   // ---- AUTH SERVICE (public routes, strict rate limit) ----
   app.use(
     '/api/auth',
-    limiters.auth,
+    // limiters.auth,
     proxy(SERVICES.auth, {
       proxyReqPathResolver: (req) => `/api/auth${req.url}`,
       proxyReqOptDecorator: (opts, srcReq) => {

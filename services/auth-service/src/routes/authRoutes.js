@@ -11,5 +11,7 @@ router.post('/otp/verify', ctrl.verifyOtp);
 router.get('/me', protect, ctrl.getMe);
 router.post('/logout', protect, ctrl.logout);
 router.post('/change-password', protect, ctrl.changePassword);
+router.post('/admin-login', ctrl.adminLogin);
+
 
 module.exports = router;

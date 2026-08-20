@@ -24,7 +24,19 @@ function buildLimiter(redisClient, { windowMs, max, prefix, keyFn }) {
       sendCommand: (...args) => redisClient.sendCommand(args),
       prefix: `rl:${prefix}:`,
     }),
-    message: { success: false, message: 'Too many requests. Please slow down.' },
+    handler: (req, res) => {
+      const resetTime = req.rateLimit?.resetTime;
+      const retryAfterSeconds = resetTime
+        ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000))
+        : Math.ceil(windowMs / 1000);
+
+      res.set('Retry-After', retryAfterSeconds);
+      res.status(429).json({
+        success: false,
+        message: 'Too many requests. Please slow down.',
+        retryAfterSeconds,
+      });
+    },
   });
 }
 

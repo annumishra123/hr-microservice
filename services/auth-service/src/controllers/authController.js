@@ -82,6 +82,35 @@ exports.login = asyncHandler(async (req, res) => {
   });
 });
 
+
+
+// @desc Login with email/password
+exports.adminLogin = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) throw new ApiError(400, 'Email and password are required');
+
+  const user = await User.findOne({ email }).select('+password');
+  if (!user || !(await user.matchPassword(password))) {
+    throw new ApiError(401, 'Invalid email or password');
+  }
+
+  if (user.role !== 'admin') {
+    throw new Error(403, "You are not admin");
+    
+  }
+
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken(user._id);
+
+  const device = await upsertDevice(req, user._id, refreshToken);
+
+  res.json({
+    success: true,
+    message: 'Login successful',
+    data: { user: sanitize(user), accessToken, refreshToken },
+  });
+});
+
 // @desc Refresh access token using refresh token
 exports.refreshToken = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
