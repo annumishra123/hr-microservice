@@ -217,7 +217,7 @@ async function start() {
   // ---- WAKE-ALL: cron job isi route ko hit karega ----
   app.get('/wake-all', async (req, res) => {
     const results = await Promise.allSettled(
-      WAKE_URLS.map((url) => axios.get(url, { timeout: 30000 }))
+      WAKE_URLS.map((url) => axios.get(url, { timeout: 60000 }))
     );
 
     const status = results.map((r, i) => ({
