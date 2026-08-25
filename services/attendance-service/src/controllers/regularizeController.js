@@ -20,13 +20,15 @@ async function submitRegularizeRequest(req, res) {
         const existingPending = await RegularizeRequest.findOne({
             employee: employeeId,
             date,
-            status: "pending"
+            status: {$in: ["pending", "approved"]}
         });
 
         if (existingPending) {
             return res.status(400).json({
                 success: false,
-                message: "There is already a request pending for this date."
+                message: existingPending.status === "approved" ?
+                 "Regularization is already approved for this date."
+                 : "There is already a request pending for this date"
             });
         }
 
