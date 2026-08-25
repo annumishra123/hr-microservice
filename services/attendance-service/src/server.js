@@ -3,6 +3,7 @@ const express = require('express');
 const connectDB = require('./config/db');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const regularizeRoutes = require('./routes/regularizeRoutes');
+const { startEmployeeSyncConsumer } = require('../src/events/employeeSync'); 
 
 const logger = require('../shared/logger')('attendance-service');
 
@@ -21,8 +22,18 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5003;
 
+// connectDB()
+//   .then(() => app.listen(PORT, () => logger.info(`attendance-service listening on :${PORT}`)))
+//   .catch((err) => {
+//     logger.error('Failed to start attendance-service', { error: err.message });
+//     process.exit(1);
+//   });
+
 connectDB()
-  .then(() => app.listen(PORT, () => logger.info(`attendance-service listening on :${PORT}`)))
+  .then(async () => {
+    await startEmployeeSyncConsumer(); 
+    app.listen(PORT, () => logger.info(`attendance-service listening on :${PORT}`));
+  })
   .catch((err) => {
     logger.error('Failed to start attendance-service', { error: err.message });
     process.exit(1);

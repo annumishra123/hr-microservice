@@ -20,4 +20,5 @@ async function publishCheckOut(record) {
   });
 }
 
+
 module.exports = { publishCheckIn, publishCheckOut };

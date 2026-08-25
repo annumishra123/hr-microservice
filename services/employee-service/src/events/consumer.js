@@ -5,6 +5,7 @@
 // ==========================================================================
 const { subscribeEvent } = require('../../shared/eventBus');
 const Employee = require('../models/Employee');
+const { publishEmployeeSynced } = require('./publisher'); 
 const logger = require('../../shared/logger')('employee-service');
 
 async function startConsumers() {
@@ -15,7 +16,7 @@ async function startConsumers() {
       if (routingKey === 'user.registered') {
         const exists = await Employee.findOne({ userId: payload.id });
         if (exists) return; // idempotency — duplicate event se dobara create na ho
-        await Employee.create({
+        const employee = await Employee.create({
           userId: payload.id,
           name: payload.name,
           email: payload.email,
@@ -25,6 +26,8 @@ async function startConsumers() {
           department: payload.department,
         });
         logger.info('Employee profile created from user.registered event', { userId: payload.id });
+
+        await publishEmployeeSynced(employee); 
       }
 
       if (routingKey === 'user.deactivated') {
