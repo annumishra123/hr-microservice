@@ -275,6 +275,23 @@ async function start() {
     })
   );
 
+
+  // ---- REGULARIZE (attendance-service ka hi hissa hai) ----
+app.use(
+  '/api/regularize',
+  verifyAuth,
+  limiters.api,
+  proxy(SERVICES.attendance, {
+    timeout: 60000,
+    proxyReqPathResolver: (req) => `/regularize${req.url}`,
+    proxyReqOptDecorator: (opts, srcReq) => {
+      opts.headers = { ...opts.headers, ...forwardHeaders(srcReq) };
+      return opts;
+    },
+  })
+);
+
+
   // ---- NOTIFICATION SERVICE (protected, REST part; sockets connect directly) ----
   app.use(
     '/api/notifications',
