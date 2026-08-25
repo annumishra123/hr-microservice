@@ -8,6 +8,9 @@ const { protect } = require('../middleware/auth');
 
 router.post('/', protect, ctrl.submitRegularizeRequest);
 router.get('/my', protect, ctrl.getMyRegularizeRequests);
+router.get('/pending',protect,  ctrl.getPendingRequests);
+router.patch('/:id/approve', protect, ctrl.approveRequest);
+router.patch('/:id/reject', protect, ctrl.rejectRequest);
 
 
 

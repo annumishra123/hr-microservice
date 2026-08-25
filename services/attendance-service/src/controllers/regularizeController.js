@@ -102,11 +102,105 @@ async function getPendingRequests(req, res) {
 
   // PATCH /regularize/:id/approve
 
+
+  async function approveRequest(req, res) {
+    try {
+      const managerId = req.userId;
+      const { id } = req.params;
+      const { managerComment } = req.body;
   
+      const request = await RegularizeRequest.findById(id);
+      if (!request) {
+        return res.status(404).json({ success: false, message: 'Request nahi mili' });
+      }
+      if (request.status !== 'pending') {
+        return res.status(400).json({ success: false, message: 'Ye request pehle hi review ho chuki hai' });
+      }
+  
+      let attendance = await Attendance.findOne({ userId: request.employee, date: request.date });
+      if (!attendance) {
+        attendance = new Attendance({ userId: request.employee, date: request.date });
+      }
+  
+      if (request.requestedCheckInTime) {
+        attendance.checkIn = combineDateAndTime(request.date, request.requestedCheckInTime);
+        attendance.checkInLocation = attendance.checkInLocation || 'Regularized';
+      }
+      if (request.requestedCheckOutTime) {
+        attendance.checkOut = combineDateAndTime(request.date, request.requestedCheckOutTime);
+        attendance.checkOutLocation = attendance.checkOutLocation || 'Regularized';
+      }
+      attendance.status = 'present';
+      await attendance.save();
+  
+      request.status = 'approved';
+      request.managerComment = managerComment || null;
+      request.reviewedBy = managerId;
+      request.reviewedAt = new Date();
+      await request.save();
+  
+      // 🔑 YE LINE ZAROORI HAI — employee ko notify karne ke liye
+      await publishEvent('regularize.approved', {
+        requestId: request._id,
+        employeeId: request.employee,
+        date: request.date,
+        managerComment: request.managerComment,
+      });
+  
+      res.json({ success: true, data: request });
+    } catch (err) {
+      console.error('approveRequest error:', err);
+      res.status(500).json({ success: false, message: 'Request approve nahi ho saki' });
+    }
+  }
+  
+  async function rejectRequest(req, res) {
+    try {
+      const managerId = req.userId;
+      const { id } = req.params;
+      const { managerComment } = req.body;
+  
+      const request = await RegularizeRequest.findById(id);
+      if (!request) {
+        return res.status(404).json({ success: false, message: 'Request nahi mili' });
+      }
+      if (request.status !== 'pending') {
+        return res.status(400).json({ success: false, message: 'Ye request pehle hi review ho chuki hai' });
+      }
+  
+      request.status = 'rejected';
+      request.managerComment = managerComment || null;
+      request.reviewedBy = managerId;
+      request.reviewedAt = new Date();
+      await request.save();
+  
+      // 🔑 YE LINE ZAROORI HAI
+      await publishEvent('regularize.rejected', {
+        requestId: request._id,
+        employeeId: request.employee,
+        date: request.date,
+        managerComment: request.managerComment,
+      });
+  
+      res.json({ success: true, data: request });
+    } catch (err) {
+      console.error('rejectRequest error:', err);
+      res.status(500).json({ success: false, message: 'Request reject nahi ho saki' });
+    }
+  }
+
+  function combineDateAndTime(dateStr, timeStr) {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const combined = new Date(dateStr);
+    combined.setHours(hours, minutes, 0, 0);
+    return combined;
+  }
 
 module.exports = {
     submitRegularizeRequest,
     getMyRegularizeRequests,
     getAttendanceByDate,
-    getPendingRequests
+    getPendingRequests,
+    approveRequest,
+    rejectRequest
 };
