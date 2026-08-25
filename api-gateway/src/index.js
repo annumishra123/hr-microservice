@@ -283,7 +283,7 @@ app.use(
   limiters.api,
   proxy(SERVICES.attendance, {
     timeout: 60000,
-    proxyReqPathResolver: (req) => `/regularize${req.url}`,
+    proxyReqPathResolver: (req) => `/api/regularize${req.url}`,
     proxyReqOptDecorator: (opts, srcReq) => {
       opts.headers = { ...opts.headers, ...forwardHeaders(srcReq) };
       return opts;
