@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const regularizeRoutes = require('./routes/regularizeRoutes');
+
 const logger = require('../shared/logger')('attendance-service');
 
 const app = express();
@@ -9,6 +11,8 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ success: true, service: 'attendance-service' }));
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/regularize', regularizeRoutes);
+
 
 app.use((err, req, res, next) => {
   logger.error(err.message, { stack: err.stack });
