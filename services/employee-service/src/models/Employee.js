@@ -19,6 +19,7 @@ const employeeSchema = new mongoose.Schema(
     dateOfJoining: { type: Date, default: Date.now },
     profilePhoto: { type: String, default: '' },
     dateOfBirth: { type: Date, default: null },
+    profilePhotoId: { type: String, default: '', select: false },
     gender: { type: String, enum: ['Male', 'Female', 'Other', ''], default: '' },
     address: { type: String, trim: true, default: '' },
     city: { type: String, trim: true, default: '' },
