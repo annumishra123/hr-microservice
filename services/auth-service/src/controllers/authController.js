@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Device = require('../models/Device');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
-const { publishUserRegistered, publishUserLoggedIn } = require('../events/publisher');
+const { publishUserRegistered, publishUserLoggedIn, publishUserDeactivated} = require('../events/publisher');
+
 
 const signAccessToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '8h' });
@@ -227,3 +228,25 @@ exports.changePassword = asyncHandler(async (req, res) => {
 
   res.json({ success: true, message: 'Password updated successfully' });
 });
+
+
+exports.deactivateUser = asyncHandler(async (req, res) => {
+  const {userId} = req.params
+  const {isActive} = req.body
+
+  const user = await User.findById(userId)
+  if(!user) throw new ApiError(404, 'User not found');
+
+  user.isActive = isActive
+  await user.save()
+
+  if(!isActive){
+    await Device.updateMany({ user: userId }, { $unset: { refreshToken: '' } });
+    await publishUserDeactivated(user);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `User ${isActive ? 'activated' : 'deactivated'} successfully.`,
+  })
+})

@@ -215,7 +215,7 @@ async function rejectRequest(req, res) {
         managerComment: request.managerComment,
       });
 
-      const [enriched] = await enrichWithEmployee([request]); // 🔴 NAYA
+      const [enriched] = await enrichWithEmployee([request]); 
       res.json({ success: true, data: enriched });
     } catch (err) {
       console.error('rejectRequest error:', err);

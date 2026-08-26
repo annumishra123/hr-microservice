@@ -22,4 +22,13 @@ async function publishUserLoggedIn(user, deviceId) {
   });
 }
 
-module.exports = { publishUserRegistered, publishUserLoggedIn };
+
+async function publishUserDeactivated(user) {
+  await publishEvent('user.deactivated', {
+    userId: user._id.toString(),
+    name: user.name,
+    email: user.email,
+  });
+}
+
+module.exports = { publishUserRegistered, publishUserLoggedIn, publishUserDeactivated};
