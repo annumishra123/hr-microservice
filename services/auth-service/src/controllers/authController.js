@@ -234,7 +234,7 @@ exports.deactivateUser = asyncHandler(async (req, res) => {
   const {userId} = req.params
   const {isActive} = req.body
 
-  const user = await User.findById(userId)
+  const user = await User.findById({_id: userId})
   if(!user) throw new ApiError(404, 'User not found');
 
   user.isActive = isActive
