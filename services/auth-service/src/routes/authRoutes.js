@@ -12,6 +12,8 @@ router.get('/me', protect, ctrl.getMe);
 router.post('/logout', protect, ctrl.logout);
 router.post('/change-password', protect, ctrl.changePassword);
 router.post('/admin-login', ctrl.adminLogin);
+router.put('/emp-deactivate/:userId', ctrl.deactivateUser);
+
 
 
 module.exports = router;
