@@ -96,7 +96,7 @@ exports.adminLogin = asyncHandler(async (req, res) => {
   }
 
   if (user.role !== 'admin') {
-    throw new Error(403, "You are not admin");
+    throw new ApiError(403, "You are not admin");
     
   }
 
