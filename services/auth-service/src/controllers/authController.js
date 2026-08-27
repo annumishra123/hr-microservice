@@ -213,8 +213,8 @@ exports.changePassword = asyncHandler(async (req, res) => {
   if (!currentPassword || !newPassword) {
     throw new ApiError(400, 'Current and new password are required');
   }
-  if (newPassword.length < 8) {
-    throw new ApiError(400, 'New password must be at least 8 characters');
+  if (newPassword.length < 6) {
+    throw new ApiError(400, 'New password must be at least 6 characters');
   }
 
   const user = await User.findById(req.userId).select('+password');
@@ -250,3 +250,5 @@ exports.deactivateUser = asyncHandler(async (req, res) => {
     message: `User ${isActive ? 'activated' : 'deactivated'} successfully.`,
   })
 })
+
+
