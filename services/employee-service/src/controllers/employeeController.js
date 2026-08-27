@@ -181,3 +181,98 @@ exports.listByDepartment = async (req, res) => {
 
   res.json({ success: true, data: items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 };
+
+
+
+// @desc Add emergency contact
+// POST /api/profile/emergency-contacts
+exports.addEmergencyContact = async (req, res) => {
+  try {
+    const { name, relation, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, message: 'Name and phone are required' });
+    }
+
+    const employee = await Employee.findOne({ userId: req.userId });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee profile not found' });
+    }
+
+    employee.emergencyContacts.push({ name, relation, phone });
+    await employee.save();
+
+    await cache.invalidate(`employee:${req.userId}`); // stale cache hata do
+
+    return res.status(201).json({
+      success: true,
+      message: 'Emergency contact added',
+      data: employee.emergencyContacts,
+    });
+  } catch (err) {
+    console.error('Add emergency contact error:', err);
+
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map((e) => e.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
+
+    return res.status(500).json({ success: false, message: 'Server error', error: err.message });
+  }
+};
+
+// @desc Get own emergency contacts
+// GET /api/profile/emergency-contacts
+exports.getEmergencyContacts = async (req, res) => {
+  try {
+    const employee = await Employee.findOne({ userId: req.userId }).select('emergencyContacts');
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee profile not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: employee.emergencyContacts,
+    });
+  } catch (err) {
+    console.error('Get emergency contacts error:', err);
+    return res.status(500).json({ success: false, message: 'Server error', error: err.message });
+  }
+};
+
+// @desc Delete an emergency contact
+// DELETE /api/profile/emergency-contacts/:contactId
+exports.deleteEmergencyContact = async (req, res) => {
+  try {
+    const { contactId } = req.params;
+
+    const employee = await Employee.findOne({ userId: req.userId });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee profile not found' });
+    }
+
+    const contact = employee.emergencyContacts.id(contactId);
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Emergency contact not found' });
+    }
+
+    contact.deleteOne(); // subdocument ko array se remove karta hai
+    await employee.save();
+
+    await cache.invalidate(`employee:${req.userId}`); // stale cache hata do
+
+    return res.status(200).json({
+      success: true,
+      message: 'Emergency contact deleted',
+      data: employee.emergencyContacts,
+    });
+  } catch (err) {
+    console.error('Delete emergency contact error:', err);
+
+    if (err.name === 'CastError') {
+      return res.status(400).json({ success: false, message: 'Invalid contact ID' });
+    }
+
+    return res.status(500).json({ success: false, message: 'Server error', error: err.message });
+  }
+};

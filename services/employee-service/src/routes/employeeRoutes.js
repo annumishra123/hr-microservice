@@ -14,4 +14,9 @@ router.put('/me', protect, upload.single('profilePhoto'), ctrl.updateMe);
 router.put('/:id/salary', ctrl.updateSalaryStructure);
 router.get('/', ctrl.listByDepartment);
 
+
+router.get('/emergency-contacts', protect, ctrl.getEmergencyContacts);
+router.post('/emergency-contacts', protect, ctrl.addEmergencyContact);
+router.delete('/emergency-contacts/:contactId', protect, ctrl.deleteEmergencyContact);
+
 module.exports = router;
