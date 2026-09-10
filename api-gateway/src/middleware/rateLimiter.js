@@ -33,7 +33,7 @@ function buildLimiter(redisClient, { windowMs, max, prefix, keyFn }) {
       res.set('Retry-After', retryAfterSeconds);
       res.status(429).json({
         success: false,
-        message: 'Too many requests. Please slow down.',
+        message: 'Too many . Please slow down.',
         retryAfterSeconds,
       });
     },
