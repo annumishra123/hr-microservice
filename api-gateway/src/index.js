@@ -324,7 +324,7 @@ async function start() {
   app.use(
     '/api/auth',
     verifyAuth,
-    limiters.api,
+    // limiters.api,
     proxy(SERVICES.auth, authProxyOptions)
   );
 
