@@ -221,7 +221,6 @@
 
 
 
-
 // ==========================================================================
 // API GATEWAY — sabka single entry point.
 //
@@ -335,6 +334,27 @@ async function start() {
   });
 
   app.get('/health', (req, res) => res.json({ success: true, gateway: 'up' }));
+
+  // ---------------------------------------------------------------------
+  // TEMPORARY DEBUG ROUTE: Redis free tier pe Shell access nahi milta,
+  // isliye stuck rate-limit keys clear karne ke liye ye ek-baar-use route.
+  // SECRET query param se protect kiya hai taaki koi bhi random visitor
+  // isko hit na kar sake. FIX ke baad ye route HATA DENA (security risk).
+  // ---------------------------------------------------------------------
+  app.get('/debug/clear-rate-limits', async (req, res) => {
+    if (req.query.secret !== process.env.DEBUG_SECRET) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    try {
+      const keys = await redisClient.keys('rl:*');
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+      }
+      res.json({ success: true, clearedKeys: keys });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
 
   // ---- WAKE-ALL: cron job isi route ko hit karega ----
   app.get('/wake-all', async (req, res) => {
