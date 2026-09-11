@@ -218,6 +218,12 @@
 
 
 
+
+
+
+
+
+
 // ==========================================================================
 // API GATEWAY — sabka single entry point.
 //
@@ -334,18 +340,40 @@ async function start() {
   app.get('/health', (req, res) => res.json({ success: true, gateway: 'up' }));
 
   // ---- WAKE-ALL: cron job isi route ko hit karega ----
-  app.get('/wake-all', async (req, res) => {
-    const results = await Promise.allSettled(
-      WAKE_URLS.map((url) => axios.get(url, { timeout: 60000 }))
-    );
+  //
+  // FIX: pehle sab 4 services ko EK SAATH (parallel) ping karte the.
+  // Agar koi service abhi sona-se-jagna (cold start) ke beech me hoti,
+  // to Render us par extra concurrent request aane par khud 429
+  // (hibernate-rate-limited) de deta tha, jabki service actually theek
+  // se boot ho rahi hoti.
+  //
+  // Ab har service ko ONE-BY-ONE (sequential) ping karte hain, thoda gap
+  // ke saath, aur agar pehli koshish fail ho (429/timeout), to ek dobara
+  // koshish (retry) karte hain thoda wait karke — taaki boot ho rahi
+  // service ko saans lene ka time mile.
+  async function pingWithRetry(url, retries = 1, delayMs = 5000) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await axios.get(url, { timeout: 60000 });
+        return { ok: true, httpStatus: res.status };
+      } catch (err) {
+        if (attempt === retries) {
+          return { ok: false, error: err.message };
+        }
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
 
-    const status = results.map((r, i) => ({
-      service: WAKE_URLS[i],
-      ok: r.status === 'fulfilled',
-      ...(r.status === 'fulfilled'
-        ? { httpStatus: r.value.status }
-        : { error: r.reason?.message || 'failed' }),
-    }));
+  app.get('/wake-all', async (req, res) => {
+    const status = [];
+    for (const url of WAKE_URLS) {
+      const result = await pingWithRetry(url);
+      status.push({ service: url, ...result });
+      // Thoda gap agle service ko ping karne se pehle, taaki sab ek
+      // saath burst na ho.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 
     res.json({ success: true, message: 'Ping sent to all services', status });
   });
