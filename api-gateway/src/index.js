@@ -323,7 +323,34 @@ async function start() {
   app.use(helmet());
   app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || '*' }));
   app.use(correlationId);
-  app.use(limiters.global); // sabse pehle global rate limit
+
+  // ---------------------------------------------------------------------
+  // FIX: /health aur /wake-all ko GLOBAL LIMITER SE PEHLE define kiya hai,
+  // taaki ye dono routes kabhi bhi rate-limit na hon. Ye dono keep-alive /
+  // uptime-monitoring routes hain (cron job + Render health checks inhe
+  // baar baar, thodi thodi der me hit karte hain) — inhe limit karna
+  // matlab apna hi wake-up mechanism khud block kar dena.
+  // ---------------------------------------------------------------------
+  app.get('/health', (req, res) => res.json({ success: true, gateway: 'up' }));
+
+  // ---- WAKE-ALL: cron job isi route ko hit karega ----
+  app.get('/wake-all', async (req, res) => {
+    const results = await Promise.allSettled(
+      WAKE_URLS.map((url) => axios.get(url, { timeout: 60000 }))
+    );
+
+    const status = results.map((r, i) => ({
+      service: WAKE_URLS[i],
+      ok: r.status === 'fulfilled',
+      ...(r.status === 'fulfilled'
+        ? { httpStatus: r.value.status }
+        : { error: r.reason?.message || 'failed' }),
+    }));
+
+    res.json({ success: true, message: 'Ping sent to all services', status });
+  });
+
+  app.use(limiters.global); // sabse pehle global rate limit (health/wake-all ke baad)
 
   // Har proxied request pe correlation id + (agar available) user id ko
   // header ke roop me downstream service tak forward karo.
@@ -331,8 +358,6 @@ async function start() {
     'X-Correlation-Id': req.correlationId,
     ...(req.userId ? { 'X-User-Id': req.userId } : {}),
   });
-
-  app.get('/health', (req, res) => res.json({ success: true, gateway: 'up' }));
 
   // TEMP DEBUG: check what IP express sees, and raw X-Forwarded-For header
   app.get('/debug/whoami', (req, res) => {
@@ -362,23 +387,6 @@ async function start() {
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }
-  });
-
-  // ---- WAKE-ALL: cron job isi route ko hit karega ----
-  app.get('/wake-all', async (req, res) => {
-    const results = await Promise.allSettled(
-      WAKE_URLS.map((url) => axios.get(url, { timeout: 60000 }))
-    );
-
-    const status = results.map((r, i) => ({
-      service: WAKE_URLS[i],
-      ok: r.status === 'fulfilled',
-      ...(r.status === 'fulfilled'
-        ? { httpStatus: r.value.status }
-        : { error: r.reason?.message || 'failed' }),
-    }));
-
-    res.json({ success: true, message: 'Ping sent to all services', status });
   });
 
   const authProxyOptions = {
