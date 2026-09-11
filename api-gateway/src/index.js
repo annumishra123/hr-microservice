@@ -262,7 +262,7 @@ const PORT = process.env.PORT || 4000;
 // '1' matlab: sirf ek hop (Render ka proxy) trust karo. Agar aage kabhi
 // aur proxies/CDN (jaise Cloudflare) add karo, to value badhani padegi.
 // ---------------------------------------------------------------------------
-app.set('trust proxy', 1);
+app.set('trust proxy', 2);
 
 const SERVICES = {
   auth: process.env.AUTH_SERVICE_URL || 'http://auth-service:5001',
