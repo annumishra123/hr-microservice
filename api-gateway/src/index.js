@@ -218,9 +218,6 @@
 
 
 
-
-
-
 // ==========================================================================
 // API GATEWAY — sabka single entry point.
 //
@@ -334,6 +331,15 @@ async function start() {
   });
 
   app.get('/health', (req, res) => res.json({ success: true, gateway: 'up' }));
+
+  // TEMP DEBUG: check what IP express sees, and raw X-Forwarded-For header
+  app.get('/debug/whoami', (req, res) => {
+    res.json({
+      reqIp: req.ip,
+      xForwardedFor: req.headers['x-forwarded-for'],
+      trustProxySetting: app.get('trust proxy'),
+    });
+  });
 
   // ---------------------------------------------------------------------
   // TEMPORARY DEBUG ROUTE: Redis free tier pe Shell access nahi milta,
